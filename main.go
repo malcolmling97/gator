@@ -18,8 +18,15 @@ func main() {
 		log.Fatalf("error reading config: %v", err)
 	}
 
+	// Load database URL
+	db, err := sql.Open("postgres", cfg.DBURL)
+	if err != nil {
+		log.Fatal("failed to connect to database:", err)
+	}
+
 	s := &state{
 		config: &cfg,
+		db:     database.New(db),
 	}
 
 	// Initialise commands map
@@ -44,18 +51,6 @@ func main() {
 		name: os.Args[1],
 		args: os.Args[2:],
 	}
-
-	// Fetch existing DB URL from the config which is our current local
-	dbURL := cfg.DBURL
-
-	// Load database URL
-	db, err := sql.Open("postgres", dbURL)
-	if err != nil {
-		log.Fatal("failed to connect to database:", err)
-	}
-
-	dbQueries := database.New(db)
-	s.db = dbQueries
 
 	// Run the command
 	err = cmds.run(s, cmd)
