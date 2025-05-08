@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gator/internal/config"
 	"log"
+	"os"
 )
 
 func main() {
@@ -14,15 +15,39 @@ func main() {
 	}
 	fmt.Printf("Read config: %+v\n", cfg)
 
-	err = cfg.SetUser("Mal")
-	if err != nil {
-		log.Fatalf("couldn't set current user: %v", err)
+	s := &state{
+		config: &cfg,
 	}
+
+	cmds := commands{
+		handlers: make(map[string]func(*state, command) error),
+	}
+
+	cmds.register("login", handlerLogin)
 
 	cfg, err = config.Read()
 	if err != nil {
 		log.Fatalf("error reading config: %v", err)
 	}
 	fmt.Printf("Read config again: %+v\n", cfg)
+
+	// Check if enough arguments were provided
+	if len(os.Args) < 2 {
+		fmt.Fprintln(os.Stderr, "Error: Not enough arguments. Please provide a command.")
+		os.Exit(1)
+	}
+
+	// Create a command struct
+	cmd := command{
+		name: os.Args[1],
+		args: os.Args[2:],
+	}
+
+	// Run the command
+	err = cmds.run(s, cmd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
 }
