@@ -111,3 +111,37 @@ func (c *commands) register(name string, f func(*state, command) error) {
 	c.handlers[name] = f
 
 }
+
+func handlerReset(s *state, cmd command) error {
+	err := s.db.DeleteAllUsers(context.Background())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to delete users:", err)
+		os.Exit(1) // explicitly required
+	}
+	fmt.Println("All users deleted successfully.")
+	return nil
+}
+
+func handlerGetUsers(s *state, cmd command) error {
+	users, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to fetch users: %w", err)
+	}
+
+	if len(users) == 0 {
+		fmt.Println("No users found.")
+		return nil
+	}
+
+	fmt.Println("Users:")
+	for _, u := range users {
+		if s.config.CurrentUserName == u.Name {
+			fmt.Printf("* %s (current)\n", u.Name)
+		} else {
+			fmt.Printf("* %s\n", u.Name)
+		}
+
+	}
+
+	return nil
+}

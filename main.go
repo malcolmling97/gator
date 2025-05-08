@@ -30,6 +30,8 @@ func main() {
 	// Register commands inside
 	cmds.register("login", handlerLogin)
 	cmds.register("register", handlerRegister)
+	cmds.register("reset", handlerReset)
+	cmds.register("users", handlerGetUsers)
 
 	// Check if enough arguments were provided
 	if len(os.Args) < 2 {
