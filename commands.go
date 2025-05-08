@@ -1,11 +1,19 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"gator/internal/config"
+	"gator/internal/database"
+	"os"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type state struct {
+	db     *database.Queries
 	config *config.Config
 }
 
@@ -26,8 +34,16 @@ func handlerLogin(s *state, cmd command) error {
 
 	username := cmd.args[0]
 
+	// Step 1: Check if the user already exists
+	_, err := s.db.GetUser(context.Background(), username)
+	if err != nil {
+		// User already exists — exit directly
+		fmt.Fprintf(os.Stderr, "user with name '%s' already exists\n", username)
+		os.Exit(1)
+	}
+
 	// Set the user in the config
-	err := s.config.SetUser(username)
+	err = s.config.SetUser(username)
 	if err != nil {
 		return err
 	}
@@ -37,6 +53,48 @@ func handlerLogin(s *state, cmd command) error {
 
 	return nil
 
+}
+
+func handlerRegister(s *state, cmd command) error {
+	if len(cmd.args) == 0 {
+		return fmt.Errorf("%s handler requires username", cmd.name)
+	}
+
+	username := cmd.args[0]
+
+	// Step 1: Check if the user already exists
+	_, err := s.db.GetUser(context.Background(), username)
+	if err == nil {
+		// User already exists — exit directly
+		fmt.Fprintf(os.Stderr, "user with name '%s' already exists\n", username)
+		os.Exit(1)
+	}
+	if err != sql.ErrNoRows {
+		// Unexpected error
+		return fmt.Errorf("error checking for user: %w", err)
+	}
+
+	// Step 2: User doesn't exist, create them
+	userArgs := database.CreateUserParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      username,
+	}
+
+	_, err = s.db.CreateUser(context.Background(), userArgs)
+	if err != nil {
+		return fmt.Errorf("failed to create user: %w", err)
+	}
+
+	// Set the user in the config
+	err = s.config.SetUser(username)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("User created successfully!")
+	return nil
 }
 
 func (c *commands) run(s *state, cmd command) error {

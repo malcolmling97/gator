@@ -1,10 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"gator/internal/config"
+	"gator/internal/database"
 	"log"
 	"os"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -18,15 +22,18 @@ func main() {
 		config: &cfg,
 	}
 
+	// Initialise commands map
 	cmds := commands{
 		handlers: make(map[string]func(*state, command) error),
 	}
 
+	// Register commands inside
 	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
 
 	// Check if enough arguments were provided
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "Error: Not enough arguments. Please provide a command.")
+		fmt.Println(os.Stderr, "Error: Not enough arguments. Please provide a command.")
 		os.Exit(1)
 	}
 
@@ -35,6 +42,18 @@ func main() {
 		name: os.Args[1],
 		args: os.Args[2:],
 	}
+
+	// Fetch existing DB URL from the config which is our current local
+	dbURL := cfg.DBURL
+
+	// Load database URL
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatal("failed to connect to database:", err)
+	}
+
+	dbQueries := database.New(db)
+	s.db = dbQueries
 
 	// Run the command
 	err = cmds.run(s, cmd)
