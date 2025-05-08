@@ -13,7 +13,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("error reading config: %v", err)
 	}
-	fmt.Printf("Read config: %+v\n", cfg)
 
 	s := &state{
 		config: &cfg,
@@ -24,12 +23,6 @@ func main() {
 	}
 
 	cmds.register("login", handlerLogin)
-
-	cfg, err = config.Read()
-	if err != nil {
-		log.Fatalf("error reading config: %v", err)
-	}
-	fmt.Printf("Read config again: %+v\n", cfg)
 
 	// Check if enough arguments were provided
 	if len(os.Args) < 2 {
