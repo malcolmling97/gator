@@ -19,7 +19,8 @@ func handlerAgg(s *state, cmd command) error {
 	fmt.Printf("Feed Description: %s\n", feed.Channel.Description)
 	fmt.Println("Items:")
 	for _, item := range feed.Channel.Items {
-		fmt.Printf("- %s (%s)\n", item.Title, item.PubDate)
+		fmt.Println(item.Title)
+		fmt.Println(item.Description)
 	}
 
 	return nil
