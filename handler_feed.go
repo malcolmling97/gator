@@ -76,3 +76,22 @@ func handlerAddFeed(s *state, cmd command) error {
 
 	return nil
 }
+
+func handlerListAllFeeds(s *state, cmd command) error {
+	feeds, err := s.db.GetAllFeedsWithUsernames(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to fetch feeds: %w", err)
+	}
+
+	if len(feeds) == 0 {
+		fmt.Println("No feeds found.")
+		return nil
+	}
+
+	fmt.Println("Feeds:")
+	for _, f := range feeds {
+		fmt.Printf("- %s (%s) [added by: %s]\n", f.FeedName, f.FeedUrl, f.Username)
+	}
+
+	return nil
+}
