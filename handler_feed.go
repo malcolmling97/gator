@@ -65,15 +65,24 @@ func handlerAddFeed(s *state, cmd command) error {
 		return fmt.Errorf("failed to create feed: %w", err)
 	}
 
-	// 4. Print out the new feed fields
-	fmt.Println("Feed successfully created:")
-	fmt.Printf("ID: %s\n", feed.ID)
-	fmt.Printf("Name: %s\n", feed.Name)
-	fmt.Printf("URL: %s\n", feed.Url)
-	fmt.Printf("UserID: %s\n", feed.UserID)
-	fmt.Printf("Created At: %s\n", feed.CreatedAt.Format(time.RFC3339))
-	fmt.Printf("Updated At: %s\n", feed.UpdatedAt.Format(time.RFC3339))
+	fmt.Printf("Feed created: %s (%s)\n", feed.Name, feed.Url)
 
+	// 4. Automatically follow the feed for the user
+	followArgs := database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    user.ID,
+		FeedID:    feed.ID,
+	}
+
+	result, err := s.db.CreateFeedFollow(context.Background(), followArgs)
+	if err != nil {
+		return fmt.Errorf("failed to follow feed after creation: %w", err)
+	}
+
+	// 5. Confirm both actions
+	fmt.Printf("%s is now following %s\n", result.UserName, result.FeedName)
 	return nil
 }
 
