@@ -9,24 +9,12 @@ import (
 	"github.com/google/uuid"
 )
 
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.args) < 1 {
 		return fmt.Errorf("usage: follow <feed-url>")
 	}
 
 	feedURL := cmd.args[0]
-
-	// Get current username from config
-	currentUsername := s.config.CurrentUserName
-	if currentUsername == "" {
-		return fmt.Errorf("no user is currently logged in")
-	}
-
-	// Look up user in DB
-	user, err := s.db.GetUser(context.Background(), currentUsername)
-	if err != nil {
-		return fmt.Errorf("user not found: %w", err)
-	}
 
 	// Look up feed by URL
 	feed, err := s.db.GetFeedByURL(context.Background(), feedURL)
@@ -52,18 +40,7 @@ func handlerFollow(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollowing(s *state, cmd command) error {
-	// Get current username from config
-	currentUsername := s.config.CurrentUserName
-	if currentUsername == "" {
-		return fmt.Errorf("no user is currently logged in")
-	}
-
-	// Look up user in DB
-	user, err := s.db.GetUser(context.Background(), currentUsername)
-	if err != nil {
-		return fmt.Errorf("user not found: %w", err)
-	}
+func handlerFollowing(s *state, cmd command, user database.User) error {
 
 	// Get all feed follows for user
 	follows, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
@@ -76,7 +53,7 @@ func handlerFollowing(s *state, cmd command) error {
 		return nil
 	}
 
-	fmt.Printf("Feeds followed by %s:\n", currentUsername)
+	fmt.Printf("Feeds followed by %s:\n", s.config.CurrentUserName)
 	for _, f := range follows {
 		fmt.Printf("- %s\n", f.FeedName)
 	}

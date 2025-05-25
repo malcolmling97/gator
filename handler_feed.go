@@ -30,25 +30,13 @@ func handlerAgg(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.args) < 2 {
 		return fmt.Errorf("usage: addfeed <name> <url>")
 	}
 
 	feedName := cmd.args[0]
 	feedURL := cmd.args[1]
-
-	// 1. Get current user from config
-	currentUsername := s.config.CurrentUserName
-	if currentUsername == "" {
-		return fmt.Errorf("no user is currently logged in")
-	}
-
-	// 2. Get user record from DB
-	user, err := s.db.GetUser(context.Background(), currentUsername)
-	if err != nil {
-		return fmt.Errorf("could not find user: %w", err)
-	}
 
 	// 3. Create feed connected to that user
 	feedArgs := database.CreateFeedParams{
