@@ -2,10 +2,15 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"gator/internal/database"
 	"gator/internal/rss"
 	"log"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func handlerAgg(s *state, cmd command) error {
@@ -47,11 +52,49 @@ func scrapeFeeds(s *state) {
 	}
 
 	for _, item := range rssFeed.Channel.Items {
-		log.Printf("Post: %s (%s)", item.Title, item.PubDate)
+		pubTime, _ := parseTime(item.PubDate) // helper to parse dates safely
+
+		err := s.db.CreatePost(ctx, database.CreatePostParams{
+			ID:        uuid.New(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Title:     item.Title,
+			Url:       item.Link,
+			Description: sql.NullString{
+				String: item.Description,
+				Valid:  item.Description != "",
+			},
+			PublishedAt: sql.NullTime{
+				Time:  pubTime,
+				Valid: !pubTime.IsZero(),
+			},
+			FeedID: feed.ID,
+		})
+
+		if err != nil {
+			if strings.Contains(err.Error(), "duplicate key value") {
+				continue // silently skip duplicates
+			}
+			log.Printf("error saving post: %v", err)
+		}
 	}
 
 	err = s.db.MarkFeedFetched(ctx, feed.ID)
 	if err != nil {
 		log.Printf("error marking feed as fetched: %v", err)
 	}
+}
+
+func parseTime(s string) (time.Time, error) {
+	if s == "" {
+		return time.Time{}, nil
+	}
+	t, err := time.Parse(time.RFC1123Z, s)
+	if err != nil {
+		t, err = time.Parse(time.RFC1123, s)
+	}
+	if err != nil {
+		t, err = time.Parse(time.RFC3339, s)
+	}
+	return t, err
 }
